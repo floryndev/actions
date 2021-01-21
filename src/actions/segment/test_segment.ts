@@ -271,6 +271,28 @@ describe(`${action.constructor.name} unit tests`, () => {
        })
     })
 
+    it("works with timestamp", () => {
+      const request = new Hub.ActionRequest()
+      request.type = Hub.ActionType.Query
+      request.params = {
+        segment_write_key: "mykey",
+      }
+      request.attachment = {dataBuffer: Buffer.from(JSON.stringify({
+        fields: {dimensions: [
+          {name: "coolfield", tags: ["email"]},
+          {name: "cooltimestamp", tags: ["segment_timestamp"]},
+        ]},
+        data: [
+          {coolfield: {value: "funvalue"}, cooltimestamp: {value: "2017-07-28T02:25:19+00:00"}},
+        ]}))}
+      return expectSegmentMatch(request, {
+        anonymousId: "stubanon",
+        userId: null,
+        timestamp: new Date("2017-07-28T02:25:19+00:00"),
+        traits: {email: "funvalue"},
+       })
+    })
+
     it("errors if the input has no attachment", () => {
       const request = new Hub.ActionRequest()
       request.type = Hub.ActionType.Query
@@ -293,7 +315,7 @@ describe(`${action.constructor.name} unit tests`, () => {
       }))}
       chai.expect(action.validateAndExecute(request)).to.eventually
         .deep.equal({
-          message: "Query requires a field tagged email or user_id or segment_anonymous_id.",
+          message: "Query requires a field tagged email or user_id or segment_anonymous_id or segment_timestamp.",
           success: false,
           refreshQuery: false,
           validationErrors: [],
@@ -313,7 +335,7 @@ describe(`${action.constructor.name} unit tests`, () => {
       }))}
       chai.expect(action.validateAndExecute(request)).to.eventually
         .deep.equal({
-          message: "Query requires a field tagged email or user_id or segment_anonymous_id.",
+          message: "Query requires a field tagged email or user_id or segment_anonymous_id or segment_timestamp.",
           success: false,
           refreshQuery: false,
           validationErrors: [],

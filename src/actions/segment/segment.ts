@@ -15,6 +15,7 @@ interface SegmentFields {
   groupIdField?: Hub.Field,
   emailField?: Hub.Field,
   anonymousIdField?: Hub.Field,
+  timestampField?: Hub.Field,
 }
 
 export enum SegmentTags {
@@ -22,6 +23,7 @@ export enum SegmentTags {
   SegmentAnonymousId = "segment_anonymous_id",
   Email = "email",
   SegmentGroupId = "segment_group_id",
+  Timestamp = "segment_timestamp",
 }
 
 export enum SegmentCalls {
@@ -32,7 +34,7 @@ export enum SegmentCalls {
 
 export class SegmentAction extends Hub.Action {
 
-  allowedTags = [SegmentTags.Email, SegmentTags.UserId, SegmentTags.SegmentAnonymousId]
+  allowedTags = [SegmentTags.Email, SegmentTags.UserId, SegmentTags.SegmentAnonymousId, SegmentTags.Timestamp]
 
   name = "segment_event"
   label = "Segment Identify"
@@ -107,8 +109,8 @@ export class SegmentAction extends Hub.Action {
           this.unassignedSegmentFieldsCheck(segmentFields)
           const payload = {
             ...this.prepareSegmentTraitsFromRow(
-              row, fieldset, segmentFields!, hiddenFields, segmentCall === SegmentCalls.Track),
-            ...{event, context, timestamp},
+              row, fieldset, segmentFields!, hiddenFields, segmentCall === SegmentCalls.Track, timestamp),
+            ...{event, context},
           }
           if (payload.groupId === null) {
             delete payload.groupId
@@ -171,6 +173,7 @@ export class SegmentAction extends Hub.Action {
       SegmentTags.SegmentAnonymousId,
       SegmentTags.UserId,
       SegmentTags.SegmentGroupId,
+      SegmentTags.Timestamp,
     ]).map((f: Hub.Field) => (f.name))
 
     return {
@@ -180,6 +183,7 @@ export class SegmentAction extends Hub.Action {
       groupIdField: this.taggedField(fields, [SegmentTags.SegmentGroupId]),
       emailField: this.taggedField(fields, [SegmentTags.Email]),
       anonymousIdField: this.taggedField(fields, [SegmentTags.SegmentAnonymousId]),
+      timestampField: this.taggedField(fields, [SegmentTags.Timestamp]),
     }
   }
 
@@ -217,6 +221,7 @@ export class SegmentAction extends Hub.Action {
     segmentFields: SegmentFields,
     hiddenFields: string[],
     trackCall: boolean,
+    timestamp: Date,
   ) {
     const traits: { [key: string]: string } = {}
     for (const field of fields) {
@@ -242,6 +247,9 @@ export class SegmentAction extends Hub.Action {
       if (segmentFields.emailField && field.name === segmentFields.emailField.name) {
         traits.email = row[field.name].value
       }
+      if (segmentFields.timestampField && field.name === segmentFields.timestampField.name) {
+        timestamp = new Date(row[field.name].value)
+      }
     }
     const userId: string | null = segmentFields.idField ? row[segmentFields.idField.name].value : null
     let anonymousId: string | null
@@ -258,6 +266,7 @@ export class SegmentAction extends Hub.Action {
       userId,
       anonymousId,
       groupId,
+      timestamp,
     }
     segmentRow[dimensionName] = traits
     return segmentRow
